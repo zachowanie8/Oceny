@@ -180,35 +180,32 @@ function showSummary() {
     const sums = Array(questions.length).fill(0);
     const counts = Array(questions.length).fill(0);
 
-    let html = '<table><tr><th>Uczeń</th>';
-    for (let i = 1; i <= questions.length; i++) html += `<th>${i}</th>`;
-    html += '<th>Średnia</th></tr>';
+// Nagłówek
+let html = '<table><tr><th>Uczeń</th>';
+for (let i = 1; i <= questions.length; i++) html += `<th>${i}</th>`;
+// usunięto: html += '<th>Średnia</th>';
+html += '</tr>';
 
-    // Tworzymy wiersze dla każdej osoby, która oceniała innych
-    snapshot.forEach(doc => {
-      const student = doc.id;
-      const data = doc.data();
-      const ans = data.answers || [];
-      html += `<tr><td>${student}</td>`;
+// Wiersze uczniów
+snapshot.forEach(doc => {
+  const student = doc.id;
+  const data = doc.data();
+  const ans = data.answers || [];
+  html += `<tr><td>${student}</td>`;
 
-      for (let j = 0; j < questions.length; j++) {
-        const val = ans[j] || '-';
-        // kolorowanie
-        let color = '';
-        if (val == 1 || val == 2) color = 'red';
-        else if (val == 3 || val == 4) color = 'orange';
-        else if (val == 5 || val == 6) color = 'green';
-        html += `<td style="color:${color}; font-weight:bold">${val}</td>`;
+  for (let j = 0; j < questions.length; j++) {
+    const val = ans[j] || '-';
+    let color = '';
+    if (val == 1 || val == 2) color = 'red';
+    else if (val == 3 || val == 4) color = 'orange';
+    else if (val == 5 || val == 6) color = 'green';
+    html += `<td style="color:${color}; font-weight:bold">${val}</td>`;
+  }
 
-        // liczymy do średniej dla ucznia nr j
-        if (val !== '-') {
-          sums[j] += parseInt(val);
-          counts[j] += 1;
-        }
-      }
-      html += '<td>-</td>'; // średnia w tym wierszu nie dla tej osoby
-      html += '</tr>';
-    });
+  // usunięto: html += '<td>-</td>';
+  html += '</tr>';
+});
+
 
     // Dodaj wiersz na samym dole ze średnimi dla każdego ucznia
     html += '<tr style="font-weight:bold; background:#f0f0f0;"><td>Średnia</td>';
