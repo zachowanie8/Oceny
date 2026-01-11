@@ -24,8 +24,8 @@ input { width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border
 /* Podsumowanie */
 #summaryScreen {
   display: none;
-  background: white;   /* białe tło */
-  color: black;        /* tekst czarny */
+  background: white;
+  color: black;
   position: fixed;
   top: 0;
   left: 0;
@@ -107,12 +107,25 @@ let questions = [];
 let current = 0;
 let answers = [];
 
-// Wczytaj pytania z pliku
+// Mapowanie ocen na słowa
+const gradeMap = {
+  6: 'Celujący',
+  5: 'Bardzo dobry',
+  4: 'Dobry',
+  3: 'Dostateczny',
+  2: 'Dopuszczający',
+  1: 'Niedostateczny'
+};
+
+// Wczytanie pytań z pliku, ignorowanie pustych wierszy
 fetch('pytania.txt')
   .then(r => r.text())
-  .then(t => { questions = t.split('\n'); render(); });
+  .then(t => { 
+    questions = t.split('\n').filter(q => q.trim() !== '');
+    render(); 
+  });
 
-// Render pytania i odpowiedzi
+// Render pytania i przycisków
 function render() {
   document.getElementById('question').innerText = `(${current + 1}/${questions.length}) ${questions[current]}`;
 
@@ -121,7 +134,7 @@ function render() {
 
   for (let i = 1; i <= 6; i++) {
     const btn = document.createElement('button');
-    btn.innerText = i;
+    btn.innerText = gradeMap[i]; // pokazujemy oceny słownie
     if (answers[current] == i) btn.classList.add('active');
     btn.onclick = () => {
       answers[current] = i;
@@ -143,9 +156,8 @@ function save() {
   db.collection("wyniki").doc(student).set({
     answers: answers,
     current: current
-  })
-  .then(() => console.log("Zapisano w Firestore!"))
-  .catch(err => console.error(err));
+  }).then(() => console.log("Zapisano w Firestore!"))
+    .catch(err => console.error(err));
 }
 
 function loadAnswers() {
@@ -176,46 +188,38 @@ function showSummary() {
       return;
     }
 
-    // Tablica do liczenia sum i liczby ocen dla średnich
+    // Tablica do liczenia średnich dla każdego ucznia
     const sums = Array(questions.length).fill(0);
     const counts = Array(questions.length).fill(0);
 
-// Nagłówek
-let html = '<table><tr><th>Uczeń</th>';
-for (let i = 1; i <= questions.length; i++) html += `<th>${i}</th>`;
-// usunięto: html += '<th>Średnia</th>';
-html += '</tr>';
+    let html = '<table><tr><th>Uczeń</th>';
+    for (let i = 1; i <= questions.length; i++) html += `<th>${i}</th>`;
+    html += '</tr>';
 
-// Wiersze uczniów
-snapshot.forEach(doc => {
-  const student = doc.id;
-  const data = doc.data();
-  const ans = data.answers || [];
-  html += `<tr><td>${student}</td>`;
+    snapshot.forEach(doc => {
+      const student = doc.id;
+      const data = doc.data();
+      const ans = data.answers || [];
+      html += `<tr><td>${student}</td>`;
 
-  for (let j = 0; j < questions.length; j++) {
-    const val = ans[j] || '-';
-    let color = '';
-    if (val == 1 || val == 2) color = 'red';
-    else if (val == 3 || val == 4) color = 'orange';
-    else if (val == 5 || val == 6) color = 'green';
-    html += `<td style="color:${color}; font-weight:bold">${val}</td>`;
-  }
+      for (let j = 0; j < questions.length; j++) {
+        const val = ans[j] || '-';
+        let color = '';
+        if (val == 1 || val == 2) color = 'red';
+        else if (val == 3 || val == 4) color = 'orange';
+        else if (val == 5 || val == 6) color = 'green';
 
-  // usunięto: html += '<td>-</td>';
-  html += '</tr>';
-});
+        const displayVal = val !== '-' ? gradeMap[val] : '-';
+        html += `<td style="color:${color}; font-weight:bold">${displayVal}</td>`;
 
+        if (val !== '-') {
+          sums[j] += parseInt(val);
+          counts[j] += 1;
+        }
+      }
+      html += '</tr>';
+    });
 
-    // Dodaj wiersz na samym dole ze średnimi dla każdego ucznia
-    html += '<tr style="font-weight:bold; background:#f0f0f0;"><td>Średnia</td>';
-    for (let j = 0; j < questions.length; j++) {
-      const avg = counts[j] ? (sums[j]/counts[j]).toFixed(2) : '-';
-      html += `<td>${avg}</td>`;
-    }
-    html += '<td>-</td></tr>';
-
-    html += '</table>';
     tableDiv.innerHTML = html;
   }).catch(err => {
     tableDiv.innerHTML = '<p>Błąd ładowania danych</p>';
@@ -224,7 +228,6 @@ snapshot.forEach(doc => {
 
   document.getElementById('summaryScreen').style.display = 'block';
 }
-
 
 function closeSummary() {
   document.getElementById('summaryScreen').style.display = 'none';
