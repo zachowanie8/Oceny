@@ -68,7 +68,8 @@ input { width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border
 <body>
 <div id="app">
 
-  <button id="summaryBtn" onclick="showSummary()">Podsumowanie</button>
+  <button id="summaryBtn" onclick="askPassword()">Podsumowanie</button>
+
 
   <input id="student" placeholder="Imię i nazwisko ucznia" onblur="loadAnswers()">
 
@@ -176,6 +177,19 @@ function loadAnswers() {
     render();
   });
 }
+
+  // Ustaw swoje hasło tutaj
+const summaryPassword = "nienawidzedzieci";
+
+function askPassword() {
+  const input = prompt("Podaj hasło do podsumowania:");
+  if (input === summaryPassword) {
+    showSummary();
+  } else if (input !== null) {
+    alert("Błędne hasło!");
+  }
+}
+
 
 // --- Podsumowanie ---
 function showSummary() {
