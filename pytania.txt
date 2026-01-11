@@ -1,24 +1,24 @@
-oceniam numer z dziennika (1) na ocenę
-oceniam numer z dziennika (2) na ocenę
-oceniam numer z dziennika (3) na ocenę
-oceniam numer z dziennika (4) na ocenę
-oceniam numer z dziennika (5) na ocenę
-oceniam numer z dziennika (6) na ocenę
-oceniam numer z dziennika (7) na ocenę
-oceniam numer z dziennika (8) na ocenę
-oceniam numer z dziennika (9) na ocenę
-oceniam numer z dziennika (10) na ocenę
-oceniam numer z dziennika (11) na ocenę
-oceniam numer z dziennika (12) na ocenę
-oceniam numer z dziennika (13) na ocenę
-oceniam numer z dziennika (14) na ocenę
-oceniam numer z dziennika (15) na ocenę
-oceniam numer z dziennika (16) na ocenę
-oceniam numer z dziennika (17) na ocenę
-oceniam numer z dziennika (18) na ocenę
-oceniam numer z dziennika (19) na ocenę
-oceniam numer z dziennika (20) na ocenę
-oceniam numer z dziennika (21) na ocenę
-oceniam numer z dziennika (22) na ocenę
-oceniam numer z dziennika (23) na ocenę
-oceniam numer z dziennika (24) na ocenę
+Oceniam ucznia/uczennicę z numerem (1)
+Oceniam ucznia/uczennicę z numerem (2) 
+Oceniam ucznia/uczennicę z numerem (3) 
+Oceniam ucznia/uczennicę z numerem (4) 
+Oceniam ucznia/uczennicę z numerem (5) 
+Oceniam ucznia/uczennicę z numerem (6) 
+Oceniam ucznia/uczennicę z numerem (7) 
+Oceniam ucznia/uczennicę z numerem (8) 
+Oceniam ucznia/uczennicę z numerem (9) 
+Oceniam ucznia/uczennicę z numerem (10) 
+Oceniam ucznia/uczennicę z numerem (11) 
+Oceniam ucznia/uczennicę z numerem (12) 
+Oceniam ucznia/uczennicę z numerem (13) 
+Oceniam ucznia/uczennicę z numerem (14) 
+Oceniam ucznia/uczennicę z numerem (15) 
+Oceniam ucznia/uczennicę z numerem (16) 
+Oceniam ucznia/uczennicę z numerem (17) 
+Oceniam ucznia/uczennicę z numerem (18) 
+Oceniam ucznia/uczennicę z numerem (19) 
+Oceniam ucznia/uczennicę z numerem (20) 
+Oceniam ucznia/uczennicę z numerem (21) 
+Oceniam ucznia/uczennicę z numerem (22) 
+Oceniam ucznia/uczennicę z numerem (23) 
+Oceniam ucznia/uczennicę z numerem (24) 
