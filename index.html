@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Ocena ucznia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <h1>Ocena ucznia</h1>
+
+  <label>Imię i nazwisko ucznia:</label><br>
+  <input type="text" id="student" placeholder="Jan Kowalski"><br><br>
+
+  <div id="questions"></div>
+
+  <button onclick="saveAnswers()">Zapisz</button>
+  <button onclick="showSummary()">Podsumowanie</button>
+
+  <pre id="summary"></pre>
+
+<script>
+let questions = [];
+
+fetch('pytania.txt')
+  .then(r => r.text())
+  .then(text => {
+    questions = text.split('\n');
+    renderQuestions();
+  });
+
+function renderQuestions() {
+  const div = document.getElementById('questions');
+  div.innerHTML = '';
+  questions.forEach((q, i) => {
+    div.innerHTML += `
+      <p>${i+1}. ${q}
+        <select id="q${i}">
+          <option value="">-</option>
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+          <option>6</option>
+        </select>
+      </p>`;
+  });
+}
+
+function saveAnswers() {
+  const student = document.getElementById('student').value;
+  const answers = questions.map((_, i) => document.getElementById(`q${i}`).value);
+  localStorage.setItem(student, JSON.stringify(answers));
+  alert('Zapisano!');
+}
+
+function showSummary() {
+  const student = document.getElementById('student').value;
+  const data = JSON.parse(localStorage.getItem(student));
+  if (!data) return alert('Brak danych');
+
+  let out = `Podsumowanie dla: ${student}\n\n`;
+  data.forEach((a, i) => out += `${i+1}. Ocena: ${a}\n`);
+  document.getElementById('summary').textContent = out;
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>
