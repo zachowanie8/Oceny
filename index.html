@@ -1,72 +1,165 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <title>Ocena ucznia</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<title>Ocena ucznia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #2196f3, #21cbf3);
+  color: white;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+  text-align: center;
+}
+
+input {
+  width: 100%;
+  padding: 15px;
+  font-size: 18px;
+  border-radius: 10px;
+  border: none;
+  margin-bottom: 20px;
+}
+
+#question {
+  font-size: 22px;
+  margin-bottom: 30px;
+}
+
+.answers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.answers button {
+  padding: 20px;
+  font-size: 20px;
+  border-radius: 15px;
+  border: none;
+  cursor: pointer;
+  background: white;
+  color: #2196f3;
+  font-weight: bold;
+}
+
+.answers button.active {
+  background: #ffeb3b;
+  color: black;
+}
+
+.nav {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.nav button {
+  padding: 15px 25px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+</style>
 </head>
+
 <body>
-  <h1>Ocena ucznia</h1>
+<div id="app">
 
-  <label>Imię i nazwisko ucznia:</label><br>
-  <input type="text" id="student" placeholder="Jan Kowalski"><br><br>
+  <input id="student" placeholder="Imię i nazwisko ucznia" onblur="loadAnswers()">
 
-  <div id="questions"></div>
+  <div id="question"></div>
 
-  <button onclick="saveAnswers()">Zapisz</button>
-  <button onclick="showSummary()">Podsumowanie</button>
+  <div class="answers" id="answers"></div>
 
-  <pre id="summary"></pre>
+  <div class="nav">
+    <button onclick="prev()">◀ Wstecz</button>
+    <button onclick="next()">Dalej ▶</button>
+  </div>
+
+</div>
 
 <script>
 let questions = [];
+let current = 0;
+let answers = [];
 
 fetch('pytania.txt')
   .then(r => r.text())
-  .then(text => {
-    questions = text.split('\n');
-    renderQuestions();
+  .then(t => {
+    questions = t.split('\n');
+    render();
   });
 
-function renderQuestions() {
-  const div = document.getElementById('questions');
-  div.innerHTML = '';
-  questions.forEach((q, i) => {
-    div.innerHTML += `
-      <p>${i+1}. ${q}
-        <select id="q${i}">
-          <option value="">-</option>
-          <option>1</option>
-          <option>2</option>
-          <option>3</option>
-          <option>4</option>
-          <option>5</option>
-          <option>6</option>
-        </select>
-      </p>`;
-  });
+function render() {
+  document.getElementById('question').innerText =
+    `(${current + 1}/24) ${questions[current]}`;
+
+  const aDiv = document.getElementById('answers');
+  aDiv.innerHTML = '';
+
+  for (let i = 1; i <= 6; i++) {
+    const btn = document.createElement('button');
+    btn.innerText = i;
+    if (answers[current] == i) btn.classList.add('active');
+    btn.onclick = () => {
+      answers[current] = i;
+      save();
+      render();
+    };
+    aDiv.appendChild(btn);
+  }
 }
 
-function saveAnswers() {
+function next() {
+  if (current < questions.length - 1) {
+    current++;
+    render();
+  }
+}
+
+function prev() {
+  if (current > 0) {
+    current--;
+    render();
+  }
+}
+
+function save() {
   const student = document.getElementById('student').value;
-  const answers = questions.map((_, i) => document.getElementById(`q${i}`).value);
-  localStorage.setItem(student, JSON.stringify(answers));
-  alert('Zapisano!');
+  if (!student) return;
+  localStorage.setItem(student, JSON.stringify({
+    answers,
+    current
+  }));
 }
 
-function showSummary() {
+function loadAnswers() {
   const student = document.getElementById('student').value;
-  const data = JSON.parse(localStorage.getItem(student));
-  if (!data) return alert('Brak danych');
+  const data = localStorage.getItem(student);
+  if (!data) return;
 
-  let out = `Podsumowanie dla: ${student}\n\n`;
-  data.forEach((a, i) => out += `${i+1}. Ocena: ${a}\n`);
-  document.getElementById('summary').textContent = out;
-}
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
+  const obj = JSON.parse(data);
+  answers = obj.answers || [];
+  current = obj.current || 0;
+  render();
 }
 </script>
 </body>
