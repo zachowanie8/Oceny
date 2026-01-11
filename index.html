@@ -6,82 +6,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-* {
-  box-sizing: border-box;
-  font-family: Arial, sans-serif;
-}
-
-body {
-  margin: 0;
-  background: linear-gradient(135deg, #2196f3, #21cbf3);
-  color: white;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-#app {
-  width: 100%;
-  max-width: 600px;
-  padding: 20px;
-  text-align: center;
-}
-
-input {
-  width: 100%;
-  padding: 15px;
-  font-size: 18px;
-  border-radius: 10px;
-  border: none;
-  margin-bottom: 20px;
-}
-
-#question {
-  font-size: 22px;
-  margin-bottom: 30px;
-}
-
-.answers {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-}
-
-.answers button {
-  padding: 20px;
-  font-size: 20px;
-  border-radius: 15px;
-  border: none;
-  cursor: pointer;
-  background: white;
-  color: #2196f3;
-  font-weight: bold;
-}
-
-.answers button.active {
-  background: #ffeb3b;
-  color: black;
-}
-
-.nav {
-  margin-top: 30px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.nav button {
-  padding: 15px 25px;
-  font-size: 16px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-}
+* { box-sizing: border-box; font-family: Arial, sans-serif; }
+body { margin: 0; background: linear-gradient(135deg, #2196f3, #21cbf3); color: white; height: 100vh; display: flex; justify-content: center; align-items: center; }
+#app { width: 100%; max-width: 600px; padding: 20px; text-align: center; }
+input { width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border: none; margin-bottom: 20px; }
+#question { font-size: 22px; margin-bottom: 30px; }
+.answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+.answers button { padding: 20px; font-size: 20px; border-radius: 15px; border: none; cursor: pointer; background: white; color: #2196f3; font-weight: bold; }
+.answers button.active { background: #ffeb3b; color: black; }
+.nav { margin-top: 30px; display: flex; justify-content: space-between; }
+.nav button, #summaryBtn { padding: 15px 25px; font-size: 16px; border-radius: 10px; border: none; cursor: pointer; background: #ff9800; color: white; font-weight: bold; margin-bottom: 15px; }
+#summaryScreen { display: none; background: rgba(0,0,0,0.8); position: fixed; top: 0; left: 0; width: 100%; height: 100%; overflow: auto; color: black; padding: 20px; }
+#summaryScreen table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+#summaryScreen th, #summaryScreen td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }
+#summaryScreen th { background: #2196f3; color: white; }
+#closeSummary { background: red; margin-top: 20px; }
 </style>
 </head>
 
 <body>
 <div id="app">
+
+  <button id="summaryBtn" onclick="showSummary()">Podsumowanie</button>
 
   <input id="student" placeholder="Imię i nazwisko ucznia" onblur="loadAnswers()">
 
@@ -93,7 +39,13 @@ input {
     <button onclick="prev()">◀ Wstecz</button>
     <button onclick="next()">Dalej ▶</button>
   </div>
+</div>
 
+<!-- Podsumowanie -->
+<div id="summaryScreen">
+  <h2>Podsumowanie uczniów</h2>
+  <div id="summaryTable"></div>
+  <button id="closeSummary" onclick="closeSummary()">Zamknij</button>
 </div>
 
 <script>
@@ -101,6 +53,7 @@ let questions = [];
 let current = 0;
 let answers = [];
 
+// wczytanie pytań
 fetch('pytania.txt')
   .then(r => r.text())
   .then(t => {
@@ -110,7 +63,7 @@ fetch('pytania.txt')
 
 function render() {
   document.getElementById('question').innerText =
-    `(${current + 1}/24) ${questions[current]}`;
+    `(${current + 1}/${questions.length}) ${questions[current]}`;
 
   const aDiv = document.getElementById('answers');
   aDiv.innerHTML = '';
@@ -128,38 +81,57 @@ function render() {
   }
 }
 
-function next() {
-  if (current < questions.length - 1) {
-    current++;
-    render();
-  }
-}
-
-function prev() {
-  if (current > 0) {
-    current--;
-    render();
-  }
-}
+function next() { if (current < questions.length - 1) { current++; render(); } }
+function prev() { if (current > 0) { current--; render(); } }
 
 function save() {
   const student = document.getElementById('student').value;
   if (!student) return;
-  localStorage.setItem(student, JSON.stringify({
-    answers,
-    current
-  }));
+  localStorage.setItem(student, JSON.stringify({ answers, current }));
 }
 
 function loadAnswers() {
   const student = document.getElementById('student').value;
   const data = localStorage.getItem(student);
   if (!data) return;
-
   const obj = JSON.parse(data);
   answers = obj.answers || [];
   current = obj.current || 0;
   render();
+}
+
+// --------- PODSUMOWANIE ----------
+function showSummary() {
+  const tableDiv = document.getElementById('summaryTable');
+  tableDiv.innerHTML = '';
+
+  if (localStorage.length === 0) {
+    tableDiv.innerHTML = '<p>Brak zapisanych danych.</p>';
+  } else {
+    let html = '<table><tr><th>Uczeń</th>';
+    for (let i = 1; i <= questions.length; i++) html += `<th>${i}</th>`;
+    html += '</tr>';
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const student = localStorage.key(i);
+      const obj = JSON.parse(localStorage.getItem(student));
+      const ans = obj.answers || [];
+      html += `<tr><td>${student}</td>`;
+      for (let j = 0; j < questions.length; j++) {
+        html += `<td>${ans[j] || '-'}</td>`;
+      }
+      html += '</tr>';
+    }
+
+    html += '</table>';
+    tableDiv.innerHTML = html;
+  }
+
+  document.getElementById('summaryScreen').style.display = 'block';
+}
+
+function closeSummary() {
+  document.getElementById('summaryScreen').style.display = 'none';
 }
 </script>
 </body>
