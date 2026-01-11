@@ -2,8 +2,12 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>Ocena ucznia</title>
+<title>Quiz uczniów</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
 * { box-sizing: border-box; font-family: Arial, sans-serif; }
@@ -16,10 +20,11 @@ input { width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border
 .answers button.active { background: #ffeb3b; color: black; }
 .nav { margin-top: 30px; display: flex; justify-content: space-between; }
 .nav button, #summaryBtn { padding: 15px 25px; font-size: 16px; border-radius: 10px; border: none; cursor: pointer; background: #ff9800; color: white; font-weight: bold; margin-bottom: 15px; }
+
 /* Podsumowanie */
 #summaryScreen {
   display: none;
-  background: white;   /* pełne białe tło */
+  background: white;   /* białe tło */
   color: black;        /* tekst czarny */
   position: fixed;
   top: 0;
@@ -31,9 +36,7 @@ input { width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border
   z-index: 9999;
 }
 
-#summaryScreen h2 {
-  color: #2196f3;
-}
+#summaryScreen h2 { color: #2196f3; }
 
 #summaryScreen table {
   width: 100%;
@@ -48,10 +51,7 @@ input { width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border
   font-size: 14px;
 }
 
-#summaryScreen th {
-  background: #2196f3;
-  color: white;
-}
+#summaryScreen th { background: #2196f3; color: white; }
 
 #closeSummary {
   background: red;
@@ -63,11 +63,8 @@ input { width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border
   cursor: pointer;
   font-weight: bold;
 }
-
-#closeSummary { background: red; margin-top: 20px; }
 </style>
 </head>
-
 <body>
 <div id="app">
 
@@ -93,21 +90,31 @@ input { width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border
 </div>
 
 <script>
+// --- Firebase ---
+const firebaseConfig = {
+  apiKey: "AIzaSyAMCtUGv68Nn1Odd8kP5zFBmsA4RLmhIjc",
+  authDomain: "quiz-uczniowie.firebaseapp.com",
+  projectId: "quiz-uczniowie",
+  storageBucket: "quiz-uczniowie.appspot.com",
+  messagingSenderId: "687897123564",
+  appId: "1:687897123564:web:9caaf7dc4690bf9bd523c9"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// --- Quiz ---
 let questions = [];
 let current = 0;
 let answers = [];
 
-// wczytanie pytań
+// Wczytaj pytania z pliku
 fetch('pytania.txt')
   .then(r => r.text())
-  .then(t => {
-    questions = t.split('\n');
-    render();
-  });
+  .then(t => { questions = t.split('\n'); render(); });
 
+// Render pytania i odpowiedzi
 function render() {
-  document.getElementById('question').innerText =
-    `(${current + 1}/${questions.length}) ${questions[current]}`;
+  document.getElementById('question').innerText = `(${current + 1}/${questions.length}) ${questions[current]}`;
 
   const aDiv = document.getElementById('answers');
   aDiv.innerHTML = '';
@@ -128,57 +135,81 @@ function render() {
 function next() { if (current < questions.length - 1) { current++; render(); } }
 function prev() { if (current > 0) { current--; render(); } }
 
+// --- Zapis i wczytanie do Firestore ---
 function save() {
   const student = document.getElementById('student').value;
   if (!student) return;
-  localStorage.setItem(student, JSON.stringify({ answers, current }));
+
+  db.collection("wyniki").doc(student).set({
+    answers: answers,
+    current: current
+  })
+  .then(() => console.log("Zapisano w Firestore!"))
+  .catch(err => console.error(err));
 }
 
 function loadAnswers() {
   const student = document.getElementById('student').value;
-  const data = localStorage.getItem(student);
-  if (!data) return;
-  const obj = JSON.parse(data);
-  answers = obj.answers || [];
-  current = obj.current || 0;
-  render();
+  if (!student) return;
+
+  db.collection("wyniki").doc(student).get().then(doc => {
+    if (!doc.exists) {
+      answers = [];
+      current = 0;
+    } else {
+      const data = doc.data();
+      answers = data.answers || [];
+      current = data.current || 0;
+    }
+    render();
+  });
 }
 
-// --------- PODSUMOWANIE ----------
+// --- Podsumowanie ---
 function showSummary() {
   const tableDiv = document.getElementById('summaryTable');
-  tableDiv.innerHTML = '';
+  tableDiv.innerHTML = 'Ładowanie...';
 
-  if (localStorage.length === 0) {
-    tableDiv.innerHTML = '<p>Brak zapisanych danych.</p>';
-  } else {
+  db.collection("wyniki").get().then(snapshot => {
+    if (snapshot.empty) {
+      tableDiv.innerHTML = '<p>Brak zapisanych danych.</p>';
+      return;
+    }
+
     let html = '<table><tr><th>Uczeń</th>';
     for (let i = 1; i <= questions.length; i++) html += `<th>${i}</th>`;
-    html += '</tr>';
+    html += '<th>Średnia</th></tr>';
 
-    for (let i = 0; i < localStorage.length; i++) {
-      const student = localStorage.key(i);
-      const obj = JSON.parse(localStorage.getItem(student));
-      const ans = obj.answers || [];
+    snapshot.forEach(doc => {
+      const student = doc.id;
+      const data = doc.data();
+      const ans = data.answers || [];
+      let sum = 0;
+      let count = 0;
       html += `<tr><td>${student}</td>`;
       for (let j = 0; j < questions.length; j++) {
         const val = ans[j] || '-';
+        if (val !== '-') { sum += parseInt(val); count++; }
         let color = '';
         if (val == 1 || val == 2) color = 'red';
         else if (val == 3 || val == 4) color = 'orange';
         else if (val == 5 || val == 6) color = 'green';
         html += `<td style="color:${color}; font-weight:bold">${val}</td>`;
       }
+      const avg = count ? (sum/count).toFixed(2) : '-';
+      html += `<td style="font-weight:bold">${avg}</td>`;
       html += '</tr>';
-    }
+    });
 
     html += '</table>';
     tableDiv.innerHTML = html;
-  }
+  }).catch(err => {
+    tableDiv.innerHTML = '<p>Błąd ładowania danych</p>';
+    console.error(err);
+  });
 
   document.getElementById('summaryScreen').style.display = 'block';
 }
-
 
 function closeSummary() {
   document.getElementById('summaryScreen').style.display = 'none';
