@@ -1,326 +1,65 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8">
-<title>Quiz uczniów</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nauka słówek – Quiz</title>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-<style>
-* { box-sizing: border-box; font-family: Arial, sans-serif; }
-body { margin: 0; background: linear-gradient(135deg, #2196f3, #21cbf3); color: white; height: 100vh; display: flex; justify-content: center; align-items: center; }
-#app { width: 100%; max-width: 600px; padding: 20px; text-align: center; }
-input { width: 100%; padding: 15px; font-size: 18px; border-radius: 10px; border: none; margin-bottom: 20px; }
-#question { font-size: 22px; margin-bottom: 30px; }
-.answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-.answers button { padding: 20px; font-size: 20px; border-radius: 15px; border: none; cursor: pointer; background: white; color: #2196f3; font-weight: bold; }
-.answers button.active { background: #ffeb3b; color: black; }
-.nav { margin-top: 30px; display: flex; justify-content: space-between; }
-.nav button, #summaryBtn { padding: 15px 25px; font-size: 16px; border-radius: 10px; border: none; cursor: pointer; background: #ff9800; color: white; font-weight: bold; margin-bottom: 15px; }
-
-/* Podsumowanie */
-#summaryScreen {
-  display: none;
-  background: white;
-  color: black;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  padding: 20px;
-  z-index: 9999;
-}
-
-#summaryScreen h2 { color: #2196f3; }
-
-#summaryScreen table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-#summaryScreen th, #summaryScreen td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-  font-size: 14px;
-}
-
-#summaryScreen th { background: #2196f3; color: white; }
-
-#closeSummary {
-  background: red;
-  color: white;
-  margin-top: 20px;
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-  /* --- Media query dla ekranów wąskich (telefony) --- */
-@media (max-width: 480px) {
-  #question {
-    font-size: 20px;
-    margin-bottom: 20px;
-  }
-
-  .answers {
-    grid-template-columns: 1fr; /* każda odpowiedź w osobnym wierszu */
-    gap: 10px;
-  }
-
-  .answers button {
-    font-size: 15px;
-    padding: 15px;
-  }
-
-  .nav button, #summaryBtn {
-    font-size: 18px;
-    padding: 15px 20px;
-    margin-bottom: 10px;
-  }
-
-  #summaryScreen table, #summaryScreen th, #summaryScreen td {
-    font-size: 12px; /* zmniejszenie tabeli na telefonie */
-  }
-
-  #summaryScreen {
-    padding: 10px;
-  }
-}
-
-
-  
-</style>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
-<div id="app">
 
-  <button id="summaryBtn" onclick="askPassword()">Podsumowanie</button>
+  <div class="app">
+    <h1>🇬🇧 Nauka słówek</h1>
+    <p class="subtitle">Quiz językowy</p>
 
+    <!-- TRYB QUIZU -->
+    <div class="panel">
+      <strong>Tryb:</strong><br>
+      <label>
+        <input type="radio" name="mode" value="abcd" checked>
+        ABCD (EN → PL)
+      </label><br>
+      <label>
+        <input type="radio" name="mode" value="typing">
+        Wpisywanie (PL → EN)
+      </label>
+    </div>
 
-  <input id="student" placeholder="Wpisz swoje imię i nazwisko" onblur="loadAnswers()">
+    <!-- KATEGORIE -->
+    <div class="panel">
+      <strong>Kategorie:</strong><br>
+      <label>
+        <input type="checkbox" value="conversation" checked>
+        Rozmowa
+      </label><br>
+      <label>
+        <input type="checkbox" value="car" checked>
+        Części samochodowe
+      </label>
+    </div>
 
-  <div id="question"></div>
+    <!-- PYTANIE -->
+    <h2 id="question"></h2>
 
-  <div class="answers" id="answers"></div>
+    <!-- ABCD -->
+    <div class="answers"></div>
 
-  <div class="nav">
-    <button onclick="prev()">◀ Wstecz</button>
-    <button onclick="next()">Dalej ▶</button>
+    <!-- WPISYWANIE -->
+    <div class="typing hidden">
+      <input id="typingAnswer" placeholder="Wpisz po angielsku">
+      <button onclick="checkTyping()">Sprawdź</button>
+      <p id="typingResult"></p>
+    </div>
+
+    <!-- STATYSTYKI -->
+    <p id="stats"></p>
+
+    <button class="secondary" onclick="resetProgress()">Reset postępów</button>
   </div>
-</div>
 
-<!-- Podsumowanie -->
-<div id="summaryScreen">
-  <h2>Podsumowanie uczniów</h2>
-  <div id="summaryTable"></div>
-  <button id="closeSummary" onclick="closeSummary()">Zamknij</button>
-</div>
-
-<script>
-// --- Firebase ---
-const firebaseConfig = {
-  apiKey: "AIzaSyAMCtUGv68Nn1Odd8kP5zFBmsA4RLmhIjc",
-  authDomain: "quiz-uczniowie.firebaseapp.com",
-  projectId: "quiz-uczniowie",
-  storageBucket: "quiz-uczniowie.appspot.com",
-  messagingSenderId: "687897123564",
-  appId: "1:687897123564:web:9caaf7dc4690bf9bd523c9"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// --- Quiz ---
-let questions = [];
-let current = 0;
-let answers = [];
-
-// Mapowanie ocen na słowa
-const gradeMap = {
-  6: 'Wzorowe',
-  5: 'Bardzo dobre',
-  4: 'Dobre',
-  3: 'Poprawne',
-  2: 'Nieodpowiednie',
-  1: 'Naganne'
-};
-
-// Wczytanie pytań z pliku, ignorowanie pustych wierszy
-fetch('pytania.txt')
-  .then(r => r.text())
-  .then(t => { 
-    questions = t.split('\n').filter(q => q.trim() !== '');
-    render(); 
-  });
-
-  
-//usuniecie ucznia w podsumowaniu
-function deleteStudent(student) {
-  if (confirm(`Na pewno chcesz usunąć dane ucznia ${student}?`)) {
-    db.collection("wyniki").doc(student).delete()
-      .then(() => {
-        alert(`Dane ucznia ${student} zostały usunięte.`);
-        showSummary(); // odświeżenie tabeli
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Błąd przy usuwaniu danych!");
-      });
-  }
-}
-
-
-  
-// Render pytania i przycisków
-function render() {
-  document.getElementById('question').innerText = `(${current + 1}/${questions.length}) ${questions[current]}`;
-
-  const aDiv = document.getElementById('answers');
-  aDiv.innerHTML = '';
-
-  for (let i = 1; i <= 6; i++) {
-    const btn = document.createElement('button');
-    btn.innerText = gradeMap[i]; // pokazujemy oceny słownie
-    if (answers[current] == i) btn.classList.add('active');
-    btn.onclick = () => {
-      answers[current] = i;
-      save();
-      render();
-    };
-    aDiv.appendChild(btn);
-  }
-}
-
-function next() { if (current < questions.length - 1) { current++; render(); } }
-function prev() { if (current > 0) { current--; render(); } }
-
-// --- Zapis i wczytanie do Firestore ---
-function save() {
-  const student = document.getElementById('student').value;
-  if (!student) return;
-
-  db.collection("wyniki").doc(student).set({
-    answers: answers,
-    current: current
-  }).then(() => console.log("Zapisano w Firestore!"))
-    .catch(err => console.error(err));
-}
-
-function loadAnswers() {
-  const student = document.getElementById('student').value;
-  if (!student) return;
-
-  db.collection("wyniki").doc(student).get().then(doc => {
-    if (!doc.exists) {
-      answers = [];
-      current = 0;
-    } else {
-      const data = doc.data();
-      answers = data.answers || [];
-      current = data.current || 0;
-    }
-    render();
-  });
-}
-
-  // Ustaw swoje hasło tutaj
-const summaryPassword = "191919";
-
-function askPassword() {
-  const input = prompt("Podaj hasło do podsumowania:");
-  if (input === summaryPassword) {
-    showSummary();
-  } else if (input !== null) {
-    alert("Błędne hasło!");
-  }
-}
-
-
-// --- Podsumowanie ---
-function showSummary() {
-  const tableDiv = document.getElementById('summaryTable');
-  tableDiv.innerHTML = 'Ładowanie...';
-
-  db.collection("wyniki").get().then(snapshot => {
-    if (snapshot.empty) {
-      tableDiv.innerHTML = '<p>Brak zapisanych danych.</p>';
-      return;
-    }
-
-    // Tablica do sumowania ocen dla każdego ucznia
-    const sums = Array(questions.length).fill(0);
-    const counts = Array(questions.length).fill(0);
-
-    let html = '<table><tr><th>Uczeń</th>';
-    for (let i = 1; i <= questions.length; i++) html += `<th>${i}</th>`;
-    html += '</tr>';
-
-    // Wiersze dla uczniów, którzy oceniali innych
-snapshot.forEach(doc => {
-  const student = doc.id;
-  const data = doc.data();
-  const ans = data.answers || [];
-  html += `<tr><td>${student}</td>`;
-
-  for (let j = 0; j < questions.length; j++) {
-    const val = ans[j] || '-';
-    let color = '';
-    if (val == 1 || val == 2) color = 'red';
-    else if (val == 3 || val == 4) color = 'orange';
-    else if (val == 5 || val == 6) color = 'green';
-
-    const displayVal = val !== '-' ? gradeMap[val] : '-';
-    html += `<td style="color:${color}; font-weight:bold">${displayVal}</td>`;
-
-    if (val !== '-') {
-      sums[j] += parseInt(val);
-      counts[j] += 1;
-    }
-  }
-
-  // Dodaj przycisk Usuń
-  html += `<td><button onclick="deleteStudent('${student}')"
-               style="background:red;color:white;border:none;border-radius:5px;padding:5px;cursor:pointer">Usuń</button></td>`;
-
-  html += '</tr>';
-});
-
-
-    // --- Dodanie wiersza ze średnią słownie ---
-    html += '<tr style="font-weight:bold; background:#f0f0f0;"><td>Średnia</td>';
-    for (let j = 0; j < questions.length; j++) {
-      if (counts[j] === 0) {
-        html += `<td>-</td>`;
-      } else {
-        const avgNum = sums[j] / counts[j];
-        const avgRound = Math.round(avgNum); // zaokrąglenie do najbliższej liczby
-        const avgText = gradeMap[avgRound];
-        html += `<td>${avgText}</td>`;
-      }
-    }
-    html += '</tr>';
-
-    tableDiv.innerHTML = html;
-  }).catch(err => {
-    tableDiv.innerHTML = '<p>Błąd ładowania danych</p>';
-    console.error(err);
-  });
-
-  document.getElementById('summaryScreen').style.display = 'block';
-}
-
-
-function closeSummary() {
-  document.getElementById('summaryScreen').style.display = 'none';
-}
-</script>
+  <script src="words.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
